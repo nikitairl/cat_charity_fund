@@ -16,5 +16,5 @@ class Donation(BasedModel):
     def __str__(self) -> str:
         return (
             f"Сумма пожертвования: {self.full_amount}, "
-            f"Пожертвовано их этой суммы: {self.invested_amount} "
+            f"Пожертвовано из этой суммы: {self.invested_amount} "
         )

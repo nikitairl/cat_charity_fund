@@ -55,11 +55,21 @@ async def validate_charity_is_closed(
         )
 
 
+async def validate_charity_delete_if_invested(
+    charity_obj: CharityProject,
+) -> None:
+    if charity_obj.fully_invested:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="В проект были внесены средства, не подлежит удалению!",
+        )
+
+
 async def validate_charity_new_and_old_amount(
     charity_obj: CharityProject, new_amount: int
 ) -> None:
     if new_amount is not None:
-        if new_amount <= charity_obj.invested_amount:
+        if new_amount < charity_obj.invested_amount:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=(

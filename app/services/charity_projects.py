@@ -1,42 +1,54 @@
+# app/services/investment_projects.py
 from datetime import datetime
 from typing import Union
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession as session
 
 from app.crud import charity_project_crud, donation_crud
 from app.models import CharityProject, Donation
 
-NOW = datetime.now()
 
-def closing(db_item: Union[Donation, CharityProject]) -> None:
-    db_item.fully_invested = True  # noqa
-    db_item.invested_amount = db_item.full_amount  # noqa
-    db_item.close_date = NOW  # noqa
+def closing(db_obj: Union[Donation, CharityProject]) -> None:
+    if db_obj.invested_amount == db_obj.full_amount:
+        db_obj.fully_invested = True
+        db_obj.close_date = datetime.now()
 
+async def investment_when_create(session: session) -> None:
+    projects = await charity_project_crud.get_not_closed(session)
+    donations = await donation_crud.get_not_closed(session)
+    project_index, projects_len = 0, len(projects)
+    donation_index, donations_len = 0, len(donations)
 
-async def investment_when_create(session: AsyncSession) -> None:
-    all_charity_projects = await charity_project_crud.get_not_closed(session)
-    all_donations = await donation_crud.get_not_closed(session)
-    # Если один из списков пустой - пропускаем распределение пожертвований
-    if not all([all_charity_projects, all_donations]):
-        return
-    for charity_project in all_charity_projects:
-        for donation in all_donations:
-            need_money = (
-                charity_project.full_amount - charity_project.invested_amount
-            )
-            available_money = donation.full_amount - donation.invested_amount
-            money_left = need_money - available_money
+    changed_objs = set()
 
-            if money_left == 0:
-                closing(charity_project)
-                closing(donation)
+    while donation_index < donations_len and project_index < projects_len:
+        project = projects[project_index]
+        donation = donations[donation_index]
 
-            if money_left < 0:
-                # abs - возвращает абсолютное число (без минуса)
-                donation.invested_amount += abs(money_left)
-                closing(charity_project)
+        project_free_amount = project.full_amount - project.invested_amount
+        donation_free_amount = donation.full_amount - donation.invested_amount
 
-            if money_left > 0:
-                charity_project.invested_amount += available_money
-                closing(donation)
+        if donation_free_amount >= project_free_amount:
+            donation.invested_amount += project_free_amount
+            project.invested_amount += project_free_amount
+
+            closing(project)
+            closing(donation)
+
+            project_index += 1
+
+            if donation.fully_invested:
+                donation_index += 1
+
+        else:
+            donation.invested_amount += donation_free_amount
+            project.invested_amount += donation_free_amount
+
+            closing(donation)
+
+            donation_index += 1
+
+        changed_objs.update({project, donation})
+
+    session.add_all(changed_objs)
+    await session.commit()

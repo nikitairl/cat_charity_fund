@@ -21,7 +21,5 @@ class DonationFullResponse(DonationPartDB):
     invested_amount: Optional[int]
     fully_invested: Optional[bool]
 
-class DonationFullDB(DonationPartDB):
-    invested_amount: Optional[int]
-    fully_invested: Optional[bool]
+class DonationFullDB(DonationFullResponse):
     close_date: Optional[datetime]

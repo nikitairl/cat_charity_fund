@@ -9,6 +9,7 @@ from app.api.validators import (
     validate_charity_new_and_old_amount,
     validate_for_duplicate,
     validate_project_exists,
+    validate_charity_delete_if_invested
 )
 from app.core.db import get_async_session
 from app.core.user import current_superuser
@@ -65,7 +66,7 @@ async def remove_charity_project(
     project_id: int, session: AsyncSession = Depends(get_async_session)
 ):
     charity_obj = await validate_project_exists(charity_id=project_id, session=session)
-    await validate_charity_is_closed(charity_obj)
+    await validate_charity_delete_if_invested(charity_obj)
     await validate_invested_on_delete(charity_obj)
     return await charity_project_crud.remove(charity_obj, session)
 

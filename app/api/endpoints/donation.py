@@ -44,6 +44,8 @@ async def get_donations_for_current_user(
     summary="Сделать пожертвование",
     dependencies=[Depends(current_user)],
     response_model=DonationPartDB,
+    response_model_exclude={'user_id'},
+    response_model_exclude_none=True
 )
 async def create_donation(
     donation: DonationCreate,
