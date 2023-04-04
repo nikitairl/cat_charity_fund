@@ -6,7 +6,6 @@ from app.core.db import Base
 
 
 class BasedModel(Base):
-
     __abstract__ = True
 
     full_amount = Column(Integer, default=0)

@@ -10,8 +10,6 @@ main_router.include_router(
     tags=["Благотворительные проекты фонда QRCat"],
 )
 
-main_router.include_router(
-    donation_router, prefix="/donation", tags=["Пожертвования"]
-)
+main_router.include_router(donation_router, prefix="/donation", tags=["Пожертвования"])
 
 main_router.include_router(user_router)

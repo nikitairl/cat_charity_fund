@@ -7,8 +7,9 @@ from app.core.db import get_async_session
 from app.core.user import current_superuser, current_user
 from app.crud.donation import donation_crud
 from app.models.user import User
-from app.schemas.donation import DonationCreate, DonationPartDB, DonationFullResponse
-from app.services.charity_projects import investment_when_create
+from app.schemas.donation import (DonationCreate, DonationFullResponse,
+                                  DonationPartDB)
+from app.services.charity_projects import investing
 
 router = APIRouter()
 
@@ -44,8 +45,8 @@ async def get_donations_for_current_user(
     summary="Сделать пожертвование",
     dependencies=[Depends(current_user)],
     response_model=DonationPartDB,
-    response_model_exclude={'user_id'},
-    response_model_exclude_none=True
+    response_model_exclude={"user_id"},
+    response_model_exclude_none=True,
 )
 async def create_donation(
     donation: DonationCreate,
@@ -53,7 +54,7 @@ async def create_donation(
     user: User = Depends(current_user),
 ):
     donation_obj = await donation_crud.create(donation, session, user)
-    await investment_when_create(session)
+    await investing(donation_obj, session)
     await session.commit()
     await session.refresh(donation_obj)
     return donation_obj

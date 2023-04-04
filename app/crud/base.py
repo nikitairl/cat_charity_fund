@@ -21,11 +21,11 @@ class CRUDBase:
         db_objs = await session.execute(select(self.model))
         return db_objs.scalars().all()
 
-    async def get_not_closed(self, session: AsyncSession):
+    async def get_not_fully_invested(self, session: AsyncSession):
         db_objs = await session.execute(
             select(self.model)
-            .where(~self.model.fully_invested)
             .order_by(self.model.create_date)
+            .where(~self.model.fully_invested)
         )
         return db_objs.scalars().all()
 
@@ -40,11 +40,11 @@ class CRUDBase:
     async def update(
         self,
         db_obj,
-        new_obj_in,
+        obj_in,
         session: AsyncSession,
     ):
         db_obj_data = jsonable_encoder(db_obj)
-        update_data = new_obj_in.dict(exclude_unset=True)
+        update_data = obj_in.dict(exclude_unset=True)
         for field in db_obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])

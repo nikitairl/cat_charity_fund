@@ -3,23 +3,19 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.validators import (
-    validate_invested_on_delete,
-    validate_charity_is_closed,
-    validate_charity_new_and_old_amount,
-    validate_for_duplicate,
-    validate_project_exists,
-    validate_charity_delete_if_invested
-)
+from app.api.validators import (validate_charity_delete_if_invested,
+                                validate_charity_is_closed,
+                                validate_charity_new_and_old_amount,
+                                validate_for_duplicate,
+                                validate_invested_on_delete,
+                                validate_project_exists)
 from app.core.db import get_async_session
 from app.core.user import current_superuser
 from app.crud.charity_projects import charity_project_crud
-from app.schemas.charity_project import (
-    CharityProjectCreate,
-    CharityProjectDB,
-    CharityProjectUpdate,
-)
-from app.services.charity_projects import investment_when_create
+from app.schemas.charity_project import (CharityProjectCreate,
+                                         CharityProjectDB,
+                                         CharityProjectUpdate)
+from app.services.charity_projects import investing
 
 router = APIRouter()
 
@@ -28,19 +24,18 @@ router = APIRouter()
     "/",
     response_model=List[CharityProjectDB],
     response_model_exclude_none=True,
-    summary="Получить весь список проектов",
+    summary="Запросить все проекты",
 )
 async def get_all_charity_projects(
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Запрос на получение всех проектов"""
     return await charity_project_crud.get_multi(session)
 
 
 @router.post(
     "/",
     dependencies=[Depends(current_superuser)],
-    summary="Создание благотворительного проекта",
+    summary="Создание проекта",
     response_model=CharityProjectDB,
     response_model_exclude_none=True,
 )
@@ -50,7 +45,7 @@ async def create_charity_project(
 ):
     await validate_for_duplicate(charity_obj.name, session)
     new_charity_obj = await charity_project_crud.create(charity_obj, session)
-    await investment_when_create(session)
+    await investing(new_charity_obj, session)
     await session.commit()
     await session.refresh(new_charity_obj)
     return new_charity_obj
@@ -58,7 +53,7 @@ async def create_charity_project(
 
 @router.delete(
     "/{project_id}",
-    summary="Удаление благотворительного проекта",
+    summary="Удаление проекта",
     dependencies=[Depends(current_superuser)],
     response_model=CharityProjectDB,
 )
@@ -74,7 +69,7 @@ async def remove_charity_project(
 @router.patch(
     "/{project_id}",
     dependencies=[Depends(current_superuser)],
-    summary="Редактировать благотворительный проект",
+    summary="Редактирование проекта",
     response_model=CharityProjectDB,
 )
 async def update_charity_project(

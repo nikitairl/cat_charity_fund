@@ -1,54 +1,38 @@
-# app/services/investment_projects.py
 from datetime import datetime
 from typing import Union
 
-from sqlalchemy.ext.asyncio import AsyncSession as session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import charity_project_crud, donation_crud
 from app.models import CharityProject, Donation
 
 
-def closing(db_obj: Union[Donation, CharityProject]) -> None:
-    if db_obj.invested_amount == db_obj.full_amount:
-        db_obj.fully_invested = True
-        db_obj.close_date = datetime.now()
+async def investing(
+    new_object: Union[CharityProject, Donation],
+    session: AsyncSession,
+) -> Union[CharityProject, Donation]:
+    if new_object.invested_amount is None:
+        new_object.invested_amount = 0
+    crud_model = (
+        donation_crud
+        if isinstance(new_object, CharityProject)
+        else charity_project_crud
+    )
+    objects_to_update = []
+    for crud_object in await crud_model.get_not_fully_invested(session):
+        free_amount = min(
+            (crud_object.full_amount - crud_object.invested_amount),
+            (new_object.full_amount - new_object.invested_amount),
+        )
 
-async def investment_when_create(session: session) -> None:
-    projects = await charity_project_crud.get_not_closed(session)
-    donations = await donation_crud.get_not_closed(session)
-    project_index, projects_len = 0, len(projects)
-    donation_index, donations_len = 0, len(donations)
+        def change_invested_amount(object):
+            object.invested_amount += free_amount
+            if object.invested_amount == object.full_amount:
+                object.fully_invested, object.close_date = True, datetime.now()
 
-    changed_objs = set()
-
-    while donation_index < donations_len and project_index < projects_len:
-        project = projects[project_index]
-        donation = donations[donation_index]
-
-        project_free_amount = project.full_amount - project.invested_amount
-        donation_free_amount = donation.full_amount - donation.invested_amount
-
-        if donation_free_amount >= project_free_amount:
-            donation.invested_amount += project_free_amount
-            project.invested_amount += project_free_amount
-
-            closing(project)
-            closing(donation)
-
-            project_index += 1
-
-            if donation.fully_invested:
-                donation_index += 1
-
-        else:
-            donation.invested_amount += donation_free_amount
-            project.invested_amount += donation_free_amount
-
-            closing(donation)
-
-            donation_index += 1
-
-        changed_objs.update({project, donation})
-
-    session.add_all(changed_objs)
-    await session.commit()
+        change_invested_amount(crud_object)
+        change_invested_amount(new_object)
+        objects_to_update.append(crud_object)
+        if new_object.fully_invested:
+            break
+    return objects_to_update

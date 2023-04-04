@@ -12,9 +12,7 @@ class CRUDCharityProject(CRUDBase):
         self, charity_name: str, session: AsyncSession
     ) -> Optional[int]:
         db_id = await session.execute(
-            select(CharityProject.id).where(
-                CharityProject.name == charity_name
-            )
+            select(CharityProject.id).where(CharityProject.name == charity_name)
         )
         return db_id.scalars().first()
 

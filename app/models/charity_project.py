@@ -8,9 +8,7 @@ class CharityProject(BasedModel):
     description = Column(Text, nullable=False)
 
     def __repr__(self) -> str:
-        return (
-            f"CharityProject(name={self.name}, full_amount={self.full_amount})"
-        )
+        return f"CharityProject(name={self.name}, full_amount={self.full_amount})"
 
     def __str__(self) -> str:
         return f"Проект: {self.name}, Нужно денег: {self.full_amount}"
