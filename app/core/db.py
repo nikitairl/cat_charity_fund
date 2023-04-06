@@ -8,7 +8,7 @@ from app.core.config import settings
 class PreBase:
     @declared_attr
     def __tablename__(cls):
-        return cls.__name__.lower()  # noqa
+        return cls.__name__.lower()
 
     id = Column(Integer, primary_key=True)
 
@@ -17,11 +17,10 @@ Base = declarative_base(cls=PreBase)
 
 engine = create_async_engine(settings.database_url)
 
-# Асинхронная функц. для доступа к БД
+
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession)
 
 
-# Открытие доступа с помощью контекстного менеджера и yield
 async def get_async_session():
-    async with AsyncSessionLocal() as async_session:  # noqa
+    async with AsyncSessionLocal() as async_session:
         yield async_session

@@ -1,1 +1,29 @@
 Generic single-database configuration with an async dbapi.
+Common commands, assuming you are using a local virtualenv:
+
+Short list of a useful commands:
+
+init command to generate a migrations directory:
+- alembic init -t async alembic
+
+migration autogenerate:
+- alembic revision --autogenerate -m 'migration comment'
+migration comment is highly recommended
+
+upgrade the head branch:
+- alembic upgrade head
+
+check latest migration:
+- alembic current
+
+downgrade the db:
+- alembic downgrade base
+
+history:
+short=
+- alembic history -v
+full=
+- alembic history
+
+For more information check the official alembic documentation:
+https://alembic.sqlalchemy.org/en/latest/api/commands.html
